@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI HandPuzzle Pro — Gesture-Controlled AI Puzzle</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- MediaPipe Hands CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     HEADER
+════════════════════════════════════════════════════════════ -->
+<header id="header">
+  <div class="container">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">🤖</div>
+        <div class="logo-text">
+          <h1>AI HANDPUZZLE PRO</h1>
+          <span>Gesture-Controlled AI Puzzle Experience</span>
+        </div>
+      </div>
+      <nav class="header-nav">
+        <button class="nav-btn" data-nav="game">▶ PLAY</button>
+        <button class="nav-btn" data-nav="howto">HOW IT WORKS</button>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════
+     STATUS BAR
+════════════════════════════════════════════════════════════ -->
+<div id="status-bar">
+  <div class="container">
+    <div class="status-inner">
+      <div class="status-item" id="hand-status">
+        <span class="status-dot"></span>
+        <span>MEDIAPIPE LOADING…</span>
+      </div>
+      <div class="status-item" id="backend-status">
+        <span class="status-dot"></span>
+        <span>LOCAL MODE</span>
+      </div>
+      <div class="status-item">
+        <span class="status-dot active"></span>
+        <span id="fps-badge">0 FPS</span>
+      </div>
+      <div class="status-item" style="margin-left:auto;">
+        <div class="backend-toggle">
+          <label class="toggle-switch">
+            <input type="checkbox" id="use-backend" />
+            <span class="toggle-slider"></span>
+          </label>
+          <span>RF Backend</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     HERO SECTION
+════════════════════════════════════════════════════════════ -->
+<section id="hero">
+  <div class="container">
+    <div class="text-center">
+      <div class="hero-tag">
+        <span>●</span> AI-POWERED · REAL-TIME · GESTURE CONTROL
+      </div>
+      <h2 class="hero-title">AI HANDPUZZLE PRO</h2>
+      <p class="hero-sub">
+        Control a sliding puzzle entirely with your hand — no mouse, no touch.
+        Powered by MediaPipe + Random Forest ML.
+      </p>
+      <div class="hero-buttons">
+        <button class="btn btn-primary" id="hero-start-btn">▶ START GAME</button>
+        <button class="btn btn-secondary" id="hero-howto-btn">HOW IT WORKS</button>
+      </div>
+
+      <!-- Feature highlights -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-top:48px;max-width:900px;margin-left:auto;margin-right:auto;">
+        <div class="glass" style="padding:24px;text-align:center;">
+          <div style="font-size:2rem;margin-bottom:8px;">🖐</div>
+          <div style="font-weight:700;color:var(--accent);margin-bottom:4px;font-size:.85rem;letter-spacing:.08em;">MEDIAPIPE</div>
+          <div style="font-size:.75rem;color:var(--text-secondary);">21-point real-time hand tracking at 30+ FPS</div>
+        </div>
+        <div class="glass" style="padding:24px;text-align:center;">
+          <div style="font-size:2rem;margin-bottom:8px;">🌲</div>
+          <div style="font-weight:700;color:var(--accent2);margin-bottom:4px;font-size:.85rem;letter-spacing:.08em;">RANDOM FOREST</div>
+          <div style="font-size:.75rem;color:var(--text-secondary);">200-tree ensemble classifier · 6 gesture classes</div>
+        </div>
+        <div class="glass" style="padding:24px;text-align:center;">
+          <div style="font-size:2rem;margin-bottom:8px;">🧩</div>
+          <div style="font-weight:700;color:var(--accent3);margin-bottom:4px;font-size:.85rem;letter-spacing:.08em;">PUZZLE ENGINE</div>
+          <div style="font-size:.75rem;color:var(--text-secondary);">3×3 / 4×4 / 5×5 · Pinch-drag · Snap detection</div>
+        </div>
+        <!-- About the Game (replaces Adaptive AI card) -->
+        <div class="glass" style="padding:24px;text-align:center;">
+          <div style="font-size:2rem;margin-bottom:8px;">🎮</div>
+          <div style="font-weight:700;color:#8b5cf6;margin-bottom:8px;font-size:.85rem;letter-spacing:.08em;">ABOUT THE GAME</div>
+          <div style="font-size:.72rem;color:var(--text-secondary);line-height:1.7;text-align:left;">
+            <span style="display:block;margin-bottom:4px;">① Pick a grid size — <strong style="color:var(--text-primary)">3×3, 4×4, or 5×5</strong></span>
+            <span style="display:block;margin-bottom:4px;">② Choose an image — capture, upload, or pick from the gallery</span>
+            <span style="display:block;margin-bottom:4px;">③ <strong style="color:var(--accent2)">PINCH</strong> to grab · move hand to drag · open to drop</span>
+            <span style="display:block;">④ Snap all pieces into place to win 🎉</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MAIN APP
+════════════════════════════════════════════════════════════ -->
+<main id="app">
+  <button id="btn-back-home" class="btn-back-home" title="Back to Home">&#8592; BACK</button>
+  <div class="container">
+    <div class="app-grid">
+
+      <!-- ── LEFT: Webcam + Gesture ─────────────────────────── -->
+      <aside class="panel-left">
+
+        <!-- Webcam -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">WEBCAM · HAND TRACKING</span>
+            <span class="panel-badge badge-active" id="hand-status-badge">ACTIVE</span>
+          </div>
+          <div class="panel-body">
+            <div id="webcam-container">
+              <video id="video-feed" autoplay muted playsinline></video>
+              <canvas id="landmark-canvas"></canvas>
+              <div class="webcam-overlay">
+                <span class="webcam-tag">MEDIAPIPE HANDS</span>
+                <span class="fps-tag" id="fps-badge">0 FPS</span>
+              </div>
+            </div>
+
+            <!-- Gesture Display -->
+            <div class="gesture-display">
+              <div class="gesture-label">DETECTED GESTURE</div>
+              <div class="gesture-name" id="gesture-name">—</div>
+              <div class="confidence-row">
+                <span class="confidence-label">AI CONFIDENCE</span>
+                <div class="confidence-bar">
+                  <div class="confidence-fill" id="confidence-fill"></div>
+                </div>
+                <span class="confidence-val" id="confidence-val">0%</span>
+              </div>
+            </div>
+
+            <!-- Per-gesture probability bars -->
+            <div class="prob-grid mt-3" id="prob-grid"></div>
+
+            <!-- Landmark readout -->
+            <div class="landmark-info mt-2" id="landmark-info">Waiting for hand…</div>
+          </div>
+        </div>
+
+      </aside>
+
+      <!-- ── CENTRE: Puzzle ─────────────────────────────────── -->
+      <section class="panel-centre">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">PUZZLE BOARD</span>
+            <span class="panel-badge badge-ai" id="mode-badge">3×3</span>
+          </div>
+          <div class="panel-body">
+
+            <!-- ══ IMAGE SOURCE SELECTOR (3 tabs) ══ -->
+            <div class="img-source-panel">
+
+              <!-- Tab strip -->
+              <div class="img-src-tabs" id="img-src-tabs">
+                <button class="img-src-tab active" data-tab="gesture">
+                  <span class="tab-icon">🤏</span>
+                  <span class="tab-label">GESTURE<br><small>Capture</small></span>
+                </button>
+                <button class="img-src-tab" data-tab="upload">
+                  <span class="tab-icon">📁</span>
+                  <span class="tab-label">UPLOAD<br><small>Your Image</small></span>
+                </button>
+                <button class="img-src-tab" data-tab="gallery">
+                  <span class="tab-icon">🖼</span>
+                  <span class="tab-label">GALLERY<br><small>Built-in</small></span>
+                </button>
+              </div>
+
+              <!-- ── Tab 1: Gesture Capture ── -->
+              <div class="img-src-body active" id="tab-gesture">
+                <div class="gesture-capture-wrap">
+                  <div class="gc-instructions">
+                    <div class="gc-step">
+                      <span class="gc-step-num">1</span>
+                      <span>Both hands in view — form a <strong>pinch</strong> (thumb + index) on each hand</span>
+                    </div>
+                    <div class="gc-step">
+                      <span class="gc-step-num">2</span>
+                      <span>Move hands to the <strong>top-left</strong> and <strong>bottom-right</strong> corners of the frame area</span>
+                    </div>
+                    <div class="gc-step">
+                      <span class="gc-step-num">3</span>
+                      <span>Hold still 3 sec — the region snaps as your puzzle image</span>
+                    </div>
+                  </div>
+                  <div class="gc-preview-wrap" id="gc-preview-wrap">
+                    <canvas id="gc-preview-canvas"></canvas>
+                    <div class="gc-overlay" id="gc-overlay">
+                      <div class="gc-frame" id="gc-frame"></div>
+                      <div class="gc-status" id="gc-status">Show both pinch gestures…</div>
+                    </div>
+                  </div>
+                  <div class="gc-actions">
+                    <button class="btn btn-primary btn-sm" id="btn-gc-capture" disabled>📸 CAPTURE FRAME</button>
+                    <button class="btn btn-secondary btn-sm" id="btn-gc-clear" style="display:none">✕ CLEAR</button>
+                  </div>
+                  <div class="img-src-active-label" id="gc-active-label" style="display:none">
+                    ✅ GESTURE CAPTURE READY
+                  </div>
+                </div>
+              </div>
+
+              <!-- ── Tab 2: File Upload ── -->
+              <div class="img-src-body" id="tab-upload">
+                <div id="upload-zone" class="upload-zone">
+                  <input type="file" id="puzzle-upload" accept="image/*" style="display:none" />
+                  <div class="upload-inner" id="upload-trigger">
+                    <div class="upload-icon">🖼</div>
+                    <div class="upload-label">UPLOAD PUZZLE IMAGE</div>
+                    <div class="upload-hint">Click or drag &amp; drop · JPG / PNG / WebP</div>
+                  </div>
+                  <div class="upload-preview" id="upload-preview" style="display:none">
+                    <img id="upload-thumb" alt="puzzle preview" />
+                    <button class="upload-remove" id="upload-remove" title="Remove image">✕</button>
+                    <div class="upload-preview-label">CUSTOM IMAGE LOADED</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ── Tab 3: Gallery ── -->
+              <div class="img-src-body" id="tab-gallery">
+                <div class="gallery-grid" id="gallery-grid">
+                  <!-- Populated by JS with 6 canvas-drawn thumbnails -->
+                </div>
+                <div class="img-src-active-label" id="gallery-active-label" style="display:none">
+                  ✅ GALLERY IMAGE SELECTED
+                </div>
+              </div>
+
+            </div><!-- /.img-source-panel -->
+
+            <!-- Mode selector -->
+            <div class="mode-selector">
+              <button class="mode-btn active" data-mode="3x3"
+                      onclick="document.getElementById('mode-badge').textContent='3×3'">3×3</button>
+              <button class="mode-btn" data-mode="4x4"
+                      onclick="document.getElementById('mode-badge').textContent='4×4'">4×4</button>
+              <button class="mode-btn" data-mode="5x5"
+                      onclick="document.getElementById('mode-badge').textContent='5×5'">5×5</button>
+            </div>
+
+            <!-- Puzzle canvas -->
+            <div id="puzzle-area">
+              <canvas id="puzzle-canvas"></canvas>
+              <div id="gesture-cursor" class="puzzle-cursor" style="display:none">
+                <div class="puzzle-cursor-ring"></div>
+                <div class="puzzle-cursor-dot"></div>
+              </div>
+              <div id="gesture-cursor-2" class="puzzle-cursor">
+                <div class="puzzle-cursor-ring"></div>
+                <div class="puzzle-cursor-dot"></div>
+              </div>
+              <div id="twohand-indicator"></div>
+              <div id="pause-overlay" class="pause-overlay">
+                <span class="pause-text">⏸ PAUSED</span>
+              </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls-row mt-3">
+              <button class="btn btn-primary btn-sm" id="btn-start">▶ START GAME</button>
+              <button class="btn btn-secondary btn-sm" id="btn-pause">⏸ PAUSE</button>
+              <button class="btn btn-secondary btn-sm" id="btn-restart">↺ RESTART</button>
+            </div>
+
+            <!-- Gesture hint -->
+            <div style="font-size:.72rem;color:var(--text-muted);margin-top:8px;padding:8px;
+                        background:rgba(10,15,30,0.6);border-radius:6px;border:1px solid var(--border);">
+              <strong style="color:var(--text-secondary);">GESTURES:</strong>
+              PINCH grab/drag &nbsp;|&nbsp;
+              FIST pause &nbsp;|&nbsp;
+              THUMBS UP resume &nbsp;|&nbsp;
+              TWO-HAND PINCH-SPREAD resize grid &nbsp;|&nbsp;
+              OPEN PALM start
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ── RIGHT: Score + AI Analysis ────────────────────── -->
+      <aside class="panel-right">
+
+        <!-- Score Panel -->
+        <div class="panel" style="margin-bottom:16px;">
+          <div class="panel-header">
+            <span class="panel-title">SCORE PANEL</span>
+            <span class="panel-badge badge-score">LIVE</span>
+          </div>
+          <div class="panel-body">
+            <div class="score-grid">
+              <div class="score-card accent-time">
+                <div class="score-card-label">TIME</div>
+                <div class="score-card-value" id="timer-val">00:00</div>
+              </div>
+              <div class="score-card accent-moves">
+                <div class="score-card-label">MOVES</div>
+                <div class="score-card-value" id="moves-val">0</div>
+              </div>
+              <div class="score-card accent-err">
+                <div class="score-card-label">MISTAKES</div>
+                <div class="score-card-value" id="mistakes-val">0</div>
+              </div>
+              <div class="score-card accent-score">
+                <div class="score-card-label">SCORE</div>
+                <div class="score-card-value" id="score-val">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Performance Analysis -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">LAST GAME ANALYSIS</span>
+            <span class="panel-badge badge-ai">AI</span>
+          </div>
+          <div class="panel-body">
+            <div class="perf-row">
+              <span class="perf-key">Grid</span>
+              <span class="perf-val" id="perf-grid">—</span>
+            </div>
+            <div class="perf-row">
+              <span class="perf-key">Solving Time</span>
+              <span class="perf-val" id="perf-time">—</span>
+            </div>
+            <div class="perf-row">
+              <span class="perf-key">Moves</span>
+              <span class="perf-val" id="perf-moves">—</span>
+            </div>
+            <div class="perf-row">
+              <span class="perf-key">Mistakes</span>
+              <span class="perf-val" id="perf-mistakes">—</span>
+            </div>
+            <div class="perf-row">
+              <span class="perf-key">Gesture Accuracy</span>
+              <span class="perf-val" id="perf-accuracy">—</span>
+            </div>
+            <div class="perf-row">
+              <span class="perf-key">Performance</span>
+              <span class="perf-val" id="perf-score-label">—</span>
+            </div>
+            <div class="rec-difficulty" id="perf-rec">
+              COMPLETE A GAME TO SEE ANALYSIS<strong></strong>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+    </div><!-- /app-grid -->
+  </div><!-- /container -->
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════
+     HOW IT WORKS SECTION
+════════════════════════════════════════════════════════════ -->
+<section id="howto-section">
+  <div class="container">
+    <div class="text-center" style="margin-bottom:40px;">
+      <div class="hero-tag">GESTURE GUIDE</div>
+      <h2 style="font-size:2rem;font-weight:900;background:linear-gradient(135deg,#e8f0fe,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+        How To Play
+      </h2>
+      <p style="color:var(--text-secondary);margin-top:12px;">
+        No mouse. No keyboard. Just your hand and the AI.
+      </p>
+    </div>
+
+    <div class="gesture-guide">
+      <div class="gesture-card">
+        <span class="gesture-icon">🤌</span>
+        <div class="gesture-card-name">PINCH</div>
+        <div class="gesture-card-action">Grab and drag a puzzle piece</div>
+      </div>
+      <div class="gesture-card">
+        <span class="gesture-icon">✋</span>
+        <div class="gesture-card-name">OPEN PALM</div>
+        <div class="gesture-card-action">Start game / capture</div>
+      </div>
+      <div class="gesture-card">
+        <span class="gesture-icon">✊</span>
+        <div class="gesture-card-name">FIST</div>
+        <div class="gesture-card-action">Pause game</div>
+      </div>
+      <div class="gesture-card">
+        <span class="gesture-icon">👍</span>
+        <div class="gesture-card-name">THUMBS UP</div>
+        <div class="gesture-card-action">Resume game</div>
+      </div>
+      <div class="gesture-card">
+        <span class="gesture-icon">☝️</span>
+        <div class="gesture-card-name">ONE FINGER</div>
+        <div class="gesture-card-action">Select a piece</div>
+      </div>
+      <div class="gesture-card">
+        <span class="gesture-icon">✌️</span>
+        <div class="gesture-card-name">TWO FINGERS</div>
+        <div class="gesture-card-action">Change puzzle mode</div>
+      </div>
+      <div class="gesture-card">
+        <span class="gesture-icon">🤏🤏</span>
+        <div class="gesture-card-name">TWO-HAND PINCH</div>
+        <div class="gesture-card-action">Spread both pinches apart/together to resize puzzle grid (3×3 → 4×4 → 5×5)</div>
+      </div>
+    </div>
+
+    <div class="glass" style="padding:32px;margin-top:32px;max-width:700px;margin-left:auto;margin-right:auto;">
+      <h3 style="font-size:1rem;font-weight:700;letter-spacing:.08em;margin-bottom:20px;color:var(--accent);">
+        STEP-BY-STEP PLAY
+      </h3>
+      <ol style="color:var(--text-secondary);font-size:.85rem;line-height:2;padding-left:20px;">
+        <li>Click <strong style="color:var(--text-primary)">▶ PLAY</strong> in the header</li>
+        <li><strong style="color:var(--text-primary)">Optional:</strong> upload your own image via the Upload zone in the Puzzle Board panel</li>
+        <li>Allow camera access when prompted</li>
+        <li>Wait for the green "HAND DETECTED" status</li>
+        <li>Select grid size manually (3×3, 4×4, or 5×5) <em>or</em> use <strong style="color:var(--accent2)">two-hand pinch-spread</strong> to dynamically resize the grid</li>
+        <li>Click <strong style="color:var(--text-primary)">START GAME</strong> or show OPEN PALM</li>
+        <li>Use <strong style="color:var(--accent2)">PINCH</strong> (thumb + index finger) to grab a puzzle piece</li>
+        <li>Move your hand to drag the piece</li>
+        <li>Release (open fingers) to drop the piece</li>
+        <li>Piece snaps if near the correct position</li>
+        <li>Complete all pieces to win 🎉</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     AI MODEL SECTION
+════════════════════════════════════════════════════════════ -->
+<section id="ai-model-section">
+  <div class="container">
+    <div class="text-center" style="margin-bottom:40px;">
+      <div class="hero-tag">TECHNICAL ARCHITECTURE</div>
+      <h2 style="font-size:2rem;font-weight:900;background:linear-gradient(135deg,#e8f0fe,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+        AI Model Architecture
+      </h2>
+    </div>
+
+    <!-- Pipeline diagram -->
+    <div class="ai-pipeline" style="margin-bottom:48px;">
+      <div class="pipeline-node">📷 Webcam (640×480 @ 30FPS)</div>
+      <div class="pipeline-arrow">↓</div>
+      <div class="pipeline-node highlight">🖐 MediaPipe Hand Landmarker</div>
+      <div class="pipeline-arrow">↓</div>
+      <div class="pipeline-node">📍 21 Hand Landmarks (x, y, z)</div>
+      <div class="pipeline-arrow">↓</div>
+      <div class="pipeline-node">⚙️ Feature Extraction (78 features)</div>
+      <div class="pipeline-arrow">↓</div>
+      <div class="pipeline-node highlight">🌲 Random Forest Classifier (200 trees)</div>
+      <div class="pipeline-arrow">↓</div>
+      <div class="pipeline-node">🎯 Gesture Prediction + Confidence</div>
+      <div class="pipeline-arrow">↓</div>
+      <div class="pipeline-node">🧩 Puzzle Action</div>
+    </div>
+
+    <!-- Tech cards -->
+    <div class="tech-grid">
+      <div class="tech-card">
+        <div class="tech-card-title">AI TECHNOLOGY</div>
+        <div class="tech-card-value">MediaPipe Hand Landmarker</div>
+        <div class="tech-card-desc">
+          Google's MediaPipe detects 21 3D hand landmarks in real time.
+          Each landmark provides normalised x, y, z coordinates within the image frame.
+          Runs at 30+ FPS on standard hardware.
+        </div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-card-title">ML ALGORITHM</div>
+        <div class="tech-card-value">Random Forest Classifier</div>
+        <div class="tech-card-desc">
+          200 decision trees trained on 78-dimensional feature vectors derived from
+          hand landmarks. Uses majority voting with probability outputs for confidence
+          estimation. Trained with scikit-learn.
+        </div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-card-title">INPUT FEATURES</div>
+        <div class="tech-card-value">78 Hand Landmark Features</div>
+        <div class="tech-card-desc">
+          63 normalised (x,y,z) coordinates from 21 landmarks — relative to the wrist
+          and scaled by bounding box diagonal — plus 15 inter-fingertip Euclidean
+          distance features.
+        </div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-card-title">OUTPUT CLASSES</div>
+        <div class="tech-card-value">6 Gesture Categories</div>
+        <div class="tech-card-desc">
+          PINCH · OPEN_PALM · FIST · THUMBS_UP · ONE_FINGER · TWO_FINGERS.
+          Each prediction includes a per-class probability vector enabling
+          real-time confidence display.
+        </div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-card-title">BACKEND API</div>
+        <div class="tech-card-value">FastAPI + WebSocket</div>
+        <div class="tech-card-desc">
+          Python FastAPI server exposes REST and WebSocket endpoints.
+          The frontend sends 78-element feature vectors; the backend returns
+          gesture predictions within milliseconds.
+        </div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-card-title">ADAPTIVE AI</div>
+        <div class="tech-card-value">Performance Analysis Engine</div>
+        <div class="tech-card-desc">
+          After each completed game the system calculates a composite performance
+          score from time, moves, mistakes, and gesture accuracy — then recommends
+          the appropriate difficulty level.
+        </div>
+      </div>
+    </div>
+
+    <!-- Random Forest explanation -->
+    <div class="glass" style="padding:32px;margin-top:32px;">
+      <h3 style="font-weight:700;color:var(--accent);margin-bottom:16px;letter-spacing:.08em;">
+        WHY RANDOM FOREST?
+      </h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;font-size:.82rem;color:var(--text-secondary);line-height:1.8;">
+        <div>
+          <strong style="color:var(--text-primary);display:block;margin-bottom:4px;">Ensemble Learning</strong>
+          200 decision trees vote on the gesture. Majority vote reduces overfitting and
+          increases robustness to noisy or slightly misaligned hand positions.
+        </div>
+        <div>
+          <strong style="color:var(--text-primary);display:block;margin-bottom:4px;">Feature Importance</strong>
+          RF automatically ranks which of the 78 features matter most — typically
+          inter-fingertip distances and wrist-relative tip positions.
+        </div>
+        <div>
+          <strong style="color:var(--text-primary);display:block;margin-bottom:4px;">Probability Outputs</strong>
+          <code>predict_proba()</code> returns confidence per class, enabling the real-time
+          confidence bar shown in the UI — not a fake score.
+        </div>
+        <div>
+          <strong style="color:var(--text-primary);display:block;margin-bottom:4px;">Fast Inference</strong>
+          Random Forest inference is O(depth × trees) — microsecond latency per frame
+          suitable for real-time gesture recognition.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SUCCESS OVERLAY
+════════════════════════════════════════════════════════════ -->
+<div id="success-overlay">
+  <div class="success-card">
+    <div class="success-title">🎉 PUZZLE COMPLETE!</div>
+    <p class="success-sub">Congratulations! You solved the puzzle using only hand gestures.</p>
+    <div class="success-stats">
+      <div class="success-stat">
+        <div class="success-stat-label">TIME</div>
+        <div class="success-stat-val" id="suc-time">—</div>
+      </div>
+      <div class="success-stat">
+        <div class="success-stat-label">MOVES</div>
+        <div class="success-stat-val" id="suc-moves">—</div>
+      </div>
+      <div class="success-stat">
+        <div class="success-stat-label">MISTAKES</div>
+        <div class="success-stat-val" id="suc-mistakes">—</div>
+      </div>
+      <div class="success-stat">
+        <div class="success-stat-label">SCORE</div>
+        <div class="success-stat-val" id="suc-score">—</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center;">
+      <button class="btn btn-success" id="suc-btn-restart">↺ PLAY AGAIN</button>
+      <button class="btn btn-secondary" id="suc-btn-close">✕ CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Confetti canvas ─────────────────────────────────────── -->
+<canvas id="confetti-canvas"></canvas>
+
+<!-- ── Toast container ────────────────────────────────────── -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════════════════════ -->
+<footer>
+  <p>
+    <span>AI HandPuzzle Pro</span> — MediaPipe + Random Forest · Real-Time Gesture Control ·
+    College AI Competition Project
+  </p>
+  <p style="margin-top:4px;font-size:.68rem;">
+    Made with IBM Bob &nbsp;|&nbsp; MediaPipe · scikit-learn · FastAPI · JavaScript
+  </p>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
