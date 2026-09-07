@@ -1,18 +1,3 @@
-/**
- * AI HandPuzzle Pro — Main Application Script
- * =============================================
- * Handles:
- *  - MediaPipe Hand Landmarker (real-time 21-point detection)
- *  - Feature extraction (matching ml/collect_data.py)
- *  - Random Forest inference via FastAPI backend (WebSocket)
- *  - In-browser rule-based fallback classifier
- *  - Puzzle engine (3×3 / 4×4 / 5×5)
- *  - Gesture-driven piece pick/drag/drop
- *  - Scoring, timer, mistake counter
- *  - AI adaptive difficulty (performance analysis)
- *  - Confetti success animation
- */
-
 'use strict';
 
 // ═══════════════════════════════════════════════════════════════
@@ -133,6 +118,8 @@ const state = {
   dragOffY:      0,
   pinchActive:   false,
   pinchPoint:    null,        // {x, y} normalised [0,1]
+  pinchFrames:   0,           // consecutive frames pinch has been ON  (debounce)
+  releaseFrames: 0,           // consecutive frames pinch has been OFF (debounce)
 
   // Two-hand pinch-spread (grid resize)
   twoHandActive:       false,
@@ -437,7 +424,7 @@ function applyGestureResult(result) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  PINCH TRACKING → PUZZLE DRAG  +  TWO-HAND GRID RESIZE
+//  PINCH TRACKING → PUZZLE DRAG
 // ═══════════════════════════════════════════════════════════════
 
 /**
@@ -468,8 +455,8 @@ function updatePinchPoint(lm, lm2) {
     const hand1Pinching = isPinchingLM(lm);
     const hand2Pinching = isPinchingLM(lm2);
 
-    // Grid-resize only active when NOT in gesture-capture tab
-    if (state.activeImageTab !== 'gesture' && hand1Pinching && hand2Pinching) {
+    // Grid selection is available only before the puzzle starts.
+    if (!state.running && state.activeImageTab !== 'gesture' && hand1Pinching && hand2Pinching) {
       // Compute the spread distance between both index finger tips (mirrored)
       const spreadDist = Math.hypot(tipX - tip2X, tipY - tip2Y);
 
@@ -514,16 +501,49 @@ function updatePinchPoint(lm, lm2) {
   // ── Single-hand drag (only when not in two-hand mode) ──
   if (!state.running || state.paused || state.twoHandActive) return;
 
-  const isPinching = state.currentGesture === 'PINCH' && state.gestureConfidence > 0.6;
+  // Convert normalised hand coords → puzzle canvas pixel coords.
+  // tipX/tipY are [0,1] over the full webcam frame; the canvas sits at a
+  // specific position on screen, so we must account for its offset.
+  const puzzleRect  = DOM.puzzleCanvas.getBoundingClientRect();
+  const areaRect    = DOM.puzzleArea.getBoundingClientRect();
+  // Map normalised → viewport px, then subtract canvas top-left
+  const canvasPxX   = tipX * areaRect.width  + (areaRect.left - puzzleRect.left);
+  const canvasPxY   = tipY * areaRect.height + (areaRect.top  - puzzleRect.top);
+  // Finally normalise to [0,1] within the canvas itself
+  const cnX = canvasPxX / puzzleRect.width;
+  const cnY = canvasPxY / puzzleRect.height;
 
-  if (isPinching && !state.pinchActive) {
+  // Use raw landmark distance for pinch while dragging (immune to classifier noise)
+  const rawPinching = isPinchingLM(lm);
+  // Also accept smoothed gesture classification for the initial grab
+  const gestPinching = state.currentGesture === 'PINCH' && state.gestureConfidence > 0.6;
+  const pinchNow = state.pinchActive ? rawPinching : (rawPinching || gestPinching);
+
+  // Debounce: count consecutive ON/OFF frames
+  if (pinchNow) {
+    state.pinchFrames++;
+    state.releaseFrames = 0;
+  } else {
+    state.releaseFrames++;
+    state.pinchFrames = 0;
+  }
+
+  const GRAB_FRAMES    = 2;   // frames of pinch required to start drag
+  const RELEASE_FRAMES = 3;   // frames of release required to drop
+
+  if (!state.pinchActive && state.pinchFrames >= GRAB_FRAMES) {
+    // Start drag
     state.pinchActive = true;
-    tryPickPiece(tipX, tipY);
-  } else if (!isPinching && state.pinchActive) {
-    state.pinchActive = false;
+    tryPickPiece(cnX, cnY);
+  } else if (state.pinchActive && state.releaseFrames >= RELEASE_FRAMES) {
+    // End drag
+    state.pinchActive  = false;
+    state.pinchFrames  = 0;
+    state.releaseFrames = 0;
     dropPiece();
-  } else if (isPinching && state.dragPiece !== null) {
-    moveDragPiece(tipX, tipY);
+  } else if (state.pinchActive && state.dragPiece !== null) {
+    // Continue drag — keep piece locked
+    moveDragPiece(cnX, cnY);
   }
 }
 
@@ -540,6 +560,8 @@ function endTwoHandGesture() {
  * If a game is in progress, reinitialise the puzzle with the current image.
  */
 function setGridSize(n) {
+  if (state.running) return;
+
   state.gridSize = n;
   state.mode     = `${n}x${n}`;
 
@@ -552,10 +574,12 @@ function setGridSize(n) {
 
   toast(`Grid resized to ${n}×${n}`, 'info', 1500);
 
-  // If a game is running reinitialise the puzzle board
-  if (state.running && state.sourceImage) {
-    initPuzzle(n, state.sourceImage);
-  }
+}
+
+function setGridSelectorDisabled(disabled) {
+  document.querySelectorAll('.mode-btn').forEach(button => {
+    button.disabled = disabled;
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1167,6 +1191,12 @@ function startGame() {
   state.startTime = Date.now();
   state.gestureFrames  = 0;
   state.gestureCorrect = 0;
+  // Reset drag state so no stale pinch carries over from previous game
+  state.dragPiece    = null;
+  state.pinchActive  = false;
+  state.pinchFrames  = 0;
+  state.releaseFrames = 0;
+  setGridSelectorDisabled(true);
 
   initPuzzle(gridSize, srcCanvas);
   startTimer();
@@ -1199,11 +1229,13 @@ function restartGame() {
   DOM.pauseOverlay.classList.remove('show');
   state.paused = false;
   state.running = false;
+  setGridSelectorDisabled(false);
   startGame();
 }
 
 function gameComplete() {
   state.running = false;
+  setGridSelectorDisabled(false);
   state.endTime = Date.now();
   stopTimer();
 
@@ -1859,6 +1891,7 @@ function wireEvents() {
   // Mode buttons
   document.querySelectorAll('.mode-btn').forEach(btn => {
     btn.addEventListener('click', () => {
+      if (state.running) return;
       document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       state.mode = btn.dataset.mode;

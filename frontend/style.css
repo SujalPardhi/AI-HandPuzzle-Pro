@@ -509,6 +509,8 @@ code, .mono { font-family: var(--font-mono); }
   transition: var(--transition);
 }
 .mode-btn:hover { border-color: var(--accent); color: var(--accent); }
+.mode-btn:disabled { opacity: .45; cursor: not-allowed; }
+.mode-btn:disabled:hover { border-color: var(--border); color: var(--text-secondary); }
 .mode-btn.active {
   border-color: var(--accent);
   background: rgba(59,130,246,0.15);
