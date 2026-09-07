@@ -18,8 +18,8 @@
 // ═══════════════════════════════════════════════════════════════
 //  CONSTANTS & CONFIG
 // ═══════════════════════════════════════════════════════════════
-const BACKEND_URL  = 'http://localhost:8000';
-const WS_URL       = 'ws://localhost:8000/ws';
+const BACKEND_URL  = 'https://ai-handpuzzle-api.onrender.com';
+const WS_URL       = 'wss://ai-handpuzzle-api.onrender.com/ws';
 const GESTURE_NAMES = ['PINCH','OPEN_PALM','FIST','THUMBS_UP','ONE_FINGER','TWO_FINGERS'];
 
 const HAND_CONNECTIONS = [
@@ -431,9 +431,6 @@ function applyGestureResult(result) {
   }
 
   // Gesture-triggered game controls (always active)
-  if (smoothed === 'FIST' && result.confidence > 0.7 && state.running && !state.paused) {
-    pauseGame();
-  }
   if (smoothed === 'THUMBS_UP' && result.confidence > 0.7 && state.running && state.paused) {
     resumeGame();
   }
